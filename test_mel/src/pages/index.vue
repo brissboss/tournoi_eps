@@ -1,0 +1,394 @@
+<script lang="ts" setup>
+import { ref } from 'vue'
+
+interface Student {
+	id: string,
+	order: string,
+	name: string,
+	points: string
+}
+
+const student = ref([] as Student[])
+
+const studentName = ref<string>('')
+const selectedStudent1 = ref<string | null>(null)
+const selectedStudent2 = ref<string | null>(null)
+
+const dialogResetPoints = ref(false)
+const dialogReset = ref(false)
+
+if (localStorage.getItem('student') !== null) {
+	student.value = JSON.parse(localStorage.getItem('student') as string)
+}
+
+function addStudent() {
+	student.value.push({
+		id: Math.random().toString(36),
+		order: (student.value.length + 1).toString(),
+		name: studentName.value,
+		points: '0'
+	})
+	studentName.value = ''
+
+	localStorage.setItem('student', JSON.stringify(student.value))
+}
+
+function calculatePoints() {
+	if (selectedStudent1.value === null || selectedStudent2.value === null) {
+		return
+	}
+
+	const student1 = student.value.find(student => student.id === selectedStudent1.value)
+	const student2 = student.value.find(student => student.id === selectedStudent2.value)
+
+	if (student1 === undefined || student2 === undefined) {
+		return
+	}
+
+	const points1 = parseInt(student1.points)
+	const order1 = parseInt(student1.order)
+	const points2 = parseInt(student2.points)
+	const order2 = parseInt(student2.order)
+
+	switch (order2 - order1) {
+		case 5:
+			student1.points = (points1 + 6).toString()
+			break
+		case 4:
+			student1.points = (points1 + 5).toString()
+			break
+		case 3:
+			student1.points = (points1 + 5).toString()
+			break
+		case 2:
+			student1.points = (points1 + 5).toString()
+			break
+		case 1:
+			student1.points = (points1 + 4).toString()
+			break
+		case -1:
+			student1.points = (points2 + 4).toString()
+			break
+		case -2:
+			student1.points = (points2 + 3).toString()
+			break
+		case -3:
+			student1.points = (points2 + 3).toString()
+			break
+		case -4:
+			student1.points = (points2 + 3).toString()
+			break
+		case -5:
+			student1.points = (points2 + 2).toString()
+			break
+		default:
+			break
+	}
+
+	student2.points = (points2 + 1).toString()
+
+	student.value = student.value.sort((a, b) => parseInt(b.points) - parseInt(a.points)).map((student, index) => {
+		student.order = (index + 1).toString()
+		return student
+	})
+
+	localStorage.setItem('student', JSON.stringify(student.value))
+}
+
+function resetPoints() {
+	student.value = student.value.map(student => {
+		student.points = '0'
+		return student
+	})
+
+	localStorage.setItem('student', JSON.stringify(student.value))
+	dialogResetPoints.value = false
+}
+
+function reset() {
+	student.value = []
+	localStorage.removeItem('student')
+	dialogReset.value = false
+}
+
+</script>
+
+<template>
+	<div
+		style="
+			display: flex;
+			flex-direction: row;
+		"
+	>
+		<v-col cols="5"
+			style="
+				border-right: 0.5px solid gray;
+				padding: 0;
+				margin: 0;
+				max-height: 100dvh;
+				overflow-y: auto;
+			"
+		>
+			<VDataTable
+				style="
+					height: 100dvh;
+					overflow-y: auto;
+				"
+				:headers="[
+					{ title: 'Ordre', value: 'order', sortable: false, align: 'center'},
+					{ title: 'Éleves', value: 'name', sortable: false, align: 'center'},
+					{ title: 'Points', value: 'points', sortable: false, align: 'center' },
+					{ title: 'Actions', value: 'action', sortable: false, align: 'center' }
+				]"
+				:items="student.sort((a, b) => parseInt(b.points) - parseInt(a.points))"
+
+				fixed-header
+				:items-per-page="-1"
+
+				:no-data-text="'Aucun élève n\'a encore été ajouté'"
+				density="compact"
+			>
+				<template #item.action="{ item }">
+					<v-icon
+						@click="student.splice(student.indexOf(item), 1)"
+					>
+						mdi-delete
+					</v-icon>
+				</template>
+
+				<template #bottom/>
+			</VDataTable>
+		</v-col>
+		<v-col cols="7"
+			style="
+				border-right: 0.5px solid gray;
+				padding-top: 0;
+				padding-bottom: 0;
+				margin: 0;
+				max-height: 100dvh;
+				overflow-y: auto;
+			"
+		>
+			<div
+				style="
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					height: 100dvh;
+					width: 100%;
+				"
+			>
+					<v-card
+						style="
+							width: 100%;
+							margin-top: 20px;
+							margin-bottom: 20px;
+							background-color: #efefef;
+						"
+					>
+						<v-card-title>
+							Résultats de match
+						</v-card-title>
+						<v-card-text>
+							<div
+								style="
+									display: flex;
+									flex-direction: row;
+									align-items: center;
+								"
+							>
+								<v-select
+									:items="student"
+									name="student1"
+									label="Élève 1"
+									v-model="selectedStudent1"
+									:item-title="'name'"
+									:item-value="'id'"
+
+									hide-details
+									density="compact"
+									variant="outlined"
+									style="margin-right: 15px; width: 38%;"
+								/>
+								<p style="width: 23%; text-align: center;">A gagner contre</p>
+								<v-select
+									:items="student"
+									name="student2"
+									label="Élève 2"
+									v-model="selectedStudent2"
+									:item-title="'name'"
+									:item-value="'id'"
+
+									hide-details
+									density="compact"
+									variant="outlined"
+									style="margin-left: 15px; width: 38%"
+								/>
+							</div>
+							<div
+								style="
+									display: flex;
+									align-items: center;
+									justify-content: end;
+								"
+							>
+								<v-dialog
+									v-model="dialogResetPoints"
+									max-width="400"
+								>
+									<template #activator="{ props: activatorProps }">
+										<v-btn
+											@click="dialogResetPoints = true"
+											color="error"
+											variant="text"
+											style="margin-top: 20px"
+											v-bind="activatorProps"
+										>
+											Réinitialiser les points
+										</v-btn>
+									</template>
+
+									<v-card>
+										<v-card-title>
+											Réinitialiser les points
+										</v-card-title>
+										<v-card-text>
+											<p>
+												Voulez-vous vraiment réinitialiser les points de tous les élèves ?
+											</p>
+										</v-card-text>
+										<v-card-actions
+											style="
+												display: flex;
+												justify-content: end;
+											"
+										>
+											<v-btn
+												@click="dialogResetPoints = false"
+											>
+												Annuler
+											</v-btn>
+											<v-btn
+												@click="resetPoints"
+												color="error"
+												variant="filled"
+											>
+												Réinitialiser
+											</v-btn>
+										</v-card-actions>
+									</v-card>
+								</v-dialog>
+								<!-- <v-btn
+									color="error"
+									style="margin-top: 20px; margin-right: 10px;"
+									variant="text"
+									@click="resetPoints"
+								>
+									Réinitialiser
+								</v-btn> -->
+								<v-btn
+									color="primary"
+									variant="outlined"
+									style="margin-top: 20px; width: 30%; margin-left: 10px"
+									@click="calculatePoints"
+								>
+									Valider
+								</v-btn>
+							</div>
+						</v-card-text>
+					</v-card>
+					<v-card
+						style="
+							width: 100%;
+							margin-bottom: 50px;
+							background-color: #efefef;
+						"
+					>
+						<v-card-title>
+							Ajouter un élève
+						</v-card-title>
+						<v-card-text
+							style="
+								display: flex;
+								flex-direction: column;
+								align-items: end;
+								justify-content: center;
+							"
+						>
+							<v-text-field
+								v-model="studentName"
+								label="Nom de l'élève"
+								variant="outlined"
+								density="comfortable"
+								hide-details
+								style="width: 100%;"
+							/>
+							<div
+								style="
+									display: flex;
+									flex-direction: row;
+									justify-content: end;
+									width: 100%;
+								"
+							>
+								<v-dialog
+									v-model="dialogReset"
+									max-width="400"
+								>
+									<template #activator="{ props: activatorProps }">
+										<v-btn
+											@click="dialogReset = true"
+											color="error"
+											variant="text"
+											style="margin-top: 20px"
+											v-bind="activatorProps"
+										>
+											Réinitialiser
+										</v-btn>
+									</template>
+
+									<v-card>
+										<v-card-title>
+											Réinitialiser les élèves
+										</v-card-title>
+										<v-card-text>
+											<p>
+												Voulez-vous vraiment supprimer tous les élèves ?
+											</p>
+										</v-card-text>
+										<v-card-actions
+											style="
+												display: flex;
+												justify-content: end;
+											"
+										>
+											<v-btn
+												@click="dialogReset = false"
+											>
+												Annuler
+											</v-btn>
+											<v-btn
+												@click="reset"
+												color="error"
+												variant="filled"
+											>
+												Réinitialiser
+											</v-btn>
+										</v-card-actions>
+									</v-card>
+								</v-dialog>
+								<v-btn
+									@click="addStudent"
+									color="primary"
+									variant="outlined"
+									style="margin-top: 20px;"
+								>
+									Ajouter
+								</v-btn>
+							</div>
+						</v-card-text>
+					</v-card>
+			</div>
+		</v-col>
+	</div>
+</template>

@@ -16,6 +16,7 @@ const selectedStudent2 = ref<string | null>(null)
 
 const dialogResetPoints = ref(false)
 const dialogReset = ref(false)
+const dialogResumeMatch = ref(false)
 
 if (localStorage.getItem('student') !== null) {
 	student.value = JSON.parse(localStorage.getItem('student') as string)
@@ -31,6 +32,92 @@ function addStudent() {
 	studentName.value = ''
 
 	localStorage.setItem('student', JSON.stringify(student.value))
+}
+
+function findStudentById(id: string) {
+	return student.value.find(student => student.id === id)?.name
+}
+
+function getPoint() {
+	if (selectedStudent1.value === null || selectedStudent2.value === null) {
+		return
+	}
+
+	const student1 = student.value.find(student => student.id === selectedStudent1.value)
+	const student2 = student.value.find(student => student.id === selectedStudent2.value)
+
+	if (student1 === undefined || student2 === undefined) {
+		return
+	}
+
+	const points1 = parseInt(student1.points)
+	const order1 = parseInt(student1.order)
+	const order2 = parseInt(student2.order)
+
+	if (points1 === 0)
+		return 3;
+	else {
+		switch (order2 - order1) {
+			case 5:
+				return 6;
+				break
+			case 4:
+				return 5;
+				break
+			case 3:
+				return 5;
+				break
+			case 2:
+				return 5;
+				break
+			case 1:
+				return 4;
+				break
+			case -1:
+				return 4;
+				break
+			case -2:
+				return 3;
+				break
+			case -3:
+				return 3;
+				break
+			case -4:
+				return 3;
+				break
+			case -5:
+				return 2;
+				break
+			default:
+				break
+		}
+	}
+
+	return 0;
+}
+
+function calculateOrder(id: string, points: string) {
+	// copy student
+	const studentsCopy = JSON.parse(JSON.stringify(student.value))
+
+	// find student
+	const studentCopy = studentsCopy.find(student => student.id === id)
+
+	// update student points
+	if (studentCopy === undefined)
+		return
+	studentCopy.points = points
+
+	// sort students
+	studentsCopy.sort((a, b) => parseInt(b.points) - parseInt(a.points))
+
+	// return student order
+	const order = studentsCopy.findIndex(student => student.id === id) + 1
+
+	if (order === 1)
+		return '1er'
+	else
+		return order + 'ème'
 }
 
 function calculatePoints() {
@@ -97,6 +184,11 @@ function calculatePoints() {
 	})
 
 	localStorage.setItem('student', JSON.stringify(student.value))
+
+	selectedStudent1.value = null
+	selectedStudent2.value = null
+
+	dialogResumeMatch.value = false	
 }
 
 function resetPoints() {
@@ -290,14 +382,126 @@ function reset() {
 								>
 									Réinitialiser
 								</v-btn> -->
-								<v-btn
-									color="primary"
-									variant="outlined"
-									style="margin-top: 20px; width: 30%; margin-left: 10px"
-									@click="calculatePoints"
+								<v-dialog
+									v-model="dialogResumeMatch"
+									max-width="400"
 								>
-									Valider
-								</v-btn>
+									<template #activator="{ props: activatorProps }">
+										<v-btn
+											@click="dialogResumeMatch = true"
+											color="primary"
+											variant="outlined"
+											style="margin-top: 20px; width: 30%; margin-left: 10px"
+											v-bind="activatorProps"
+										>
+											Valider
+										</v-btn>
+									</template>
+
+									<v-card>
+										<v-card-title>
+											Valider le match
+										</v-card-title>
+
+										<v-card-text>
+											<v-row>
+												<v-col
+													cols="6"
+													style="
+														display: flex;
+														flex-direction: column;
+														justify-content: center;
+														align-items: center;
+														border-right: 1px solid #efefef;
+													"
+												>
+													<p style="font-size: 1.5rem;">
+														Gagné
+													</p>
+													<p style="font-size: 2rem;">
+														<b class="text-success mr-1">{{ findStudentById(selectedStudent1) }}</b>
+													</p>
+													<p
+														style="
+															margin-top: 10px;
+															font-size: 0.8rem;
+															align-self: flex-start;
+															color: #5f5f5f;
+														"
+													>
+														- <b>{{ getPoint() }}</b> points gagnés
+													</p>
+													<p
+														style="
+															font-size: 0.8rem;
+															align-self: flex-start;
+															color: #5f5f5f;
+														"
+													>
+														- <b>{{ calculateOrder(selectedStudent1, getPoint()) }}</b> au classement
+													</p>
+												</v-col>
+												<v-col
+													cols="6"
+													style="
+														display: flex;
+														flex-direction: column;
+														justify-content: center;
+														align-items: center;
+													"
+												>
+													<p style="font-size: 1.5rem;">
+														Perdu
+													</p>
+													<p style="font-size: 2rem;">
+														<b class="text-error mr-1">{{ findStudentById(selectedStudent2) }}</b>
+													</p>
+													<p
+														style="
+															margin-top: 10px;
+															font-size: 0.8rem;
+															align-self: flex-start;
+															color: #5f5f5f;
+														"
+													>
+														- <b>1</b> points gagnés
+													</p>
+													<p
+														style="
+															font-size: 0.8rem;
+															align-self: flex-start;
+															color: #5f5f5f;
+														"
+													>
+														- <b>8ème</b> au classement
+													</p>
+												</v-col>
+											</v-row>
+										</v-card-text>
+
+										<v-card-actions
+											style="
+												display: flex;
+												justify-content: end;
+											"
+										>
+											<v-btn
+												@click="dialogResumeMatch = false"
+												color="error"
+											>
+												Annuler
+											</v-btn>
+											<v-btn
+												@click="calculatePoints"
+												color="primary"
+												variant="filled"
+											>
+												Valider
+											</v-btn>
+										</v-card-actions>
+									</v-card>
+
+								</v-dialog>
 							</div>
 						</v-card-text>
 					</v-card>

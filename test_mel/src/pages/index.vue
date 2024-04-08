@@ -50,39 +50,43 @@ function calculatePoints() {
 	const points2 = parseInt(student2.points)
 	const order2 = parseInt(student2.order)
 
-	switch (order2 - order1) {
-		case 5:
-			student1.points = (points1 + 6).toString()
-			break
-		case 4:
-			student1.points = (points1 + 5).toString()
-			break
-		case 3:
-			student1.points = (points1 + 5).toString()
-			break
-		case 2:
-			student1.points = (points1 + 5).toString()
-			break
-		case 1:
-			student1.points = (points1 + 4).toString()
-			break
-		case -1:
-			student1.points = (points2 + 4).toString()
-			break
-		case -2:
-			student1.points = (points2 + 3).toString()
-			break
-		case -3:
-			student1.points = (points2 + 3).toString()
-			break
-		case -4:
-			student1.points = (points2 + 3).toString()
-			break
-		case -5:
-			student1.points = (points2 + 2).toString()
-			break
-		default:
-			break
+	if (points1 === 0)
+		student1.points = "3"
+	else {
+		switch (order2 - order1) {
+			case 5:
+				student1.points = (points1 + 6).toString()
+				break
+			case 4:
+				student1.points = (points1 + 5).toString()
+				break
+			case 3:
+				student1.points = (points1 + 5).toString()
+				break
+			case 2:
+				student1.points = (points1 + 5).toString()
+				break
+			case 1:
+				student1.points = (points1 + 4).toString()
+				break
+			case -1:
+				student1.points = (points2 + 4).toString()
+				break
+			case -2:
+				student1.points = (points2 + 3).toString()
+				break
+			case -3:
+				student1.points = (points2 + 3).toString()
+				break
+			case -4:
+				student1.points = (points2 + 3).toString()
+				break
+			case -5:
+				student1.points = (points2 + 2).toString()
+				break
+			default:
+				break
+		}
 	}
 
 	student2.points = (points2 + 1).toString()

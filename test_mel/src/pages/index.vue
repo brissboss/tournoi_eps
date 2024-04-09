@@ -1,11 +1,15 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
+import Score from '../components/Score.vue';
 
 interface Student {
 	id: string,
 	order: string,
 	name: string,
-	points: string
+	points: string,
+	match: string,
+	arbitre: string,
+	trash: boolean
 }
 
 const student = ref([] as Student[])
@@ -13,6 +17,7 @@ const student = ref([] as Student[])
 const studentName = ref<string>('')
 const selectedStudent1 = ref<string | null>(null)
 const selectedStudent2 = ref<string | null>(null)
+const selectedStudent3 = ref<string | null>(null)
 
 const dialogResetPoints = ref(false)
 const dialogReset = ref(false)
@@ -29,10 +34,18 @@ function addStudent() {
 		id: Math.random().toString(36),
 		order: (student.value.length + 1).toString(),
 		name: studentName.value,
-		points: '0'
+		points: '0',
+		match: '0',
+		arbitre: '0',
+		trash: false
 	})
 	studentName.value = ''
 
+	localStorage.setItem('student', JSON.stringify(student.value))
+}
+
+function deleteStudent(id: string) {
+	student.value = student.value.filter(student => student.id !== id)
 	localStorage.setItem('student', JSON.stringify(student.value))
 }
 
@@ -99,52 +112,33 @@ function getPoint() {
 }
 
 function calculateOrder(id: string, points: string, id2: string, points2: string) {
-
-	console.log('%cindex.vue -> 103', 'color: #0AD7A6; font-size: 1.5rem; background-color: #E0DECF; padding: 5px 15px; border-radius: 5px; -webkit-text-stroke: 0.5px black;');
-	console.log('id:', id);
-	console.log('points:', points);
-	console.log('id2:', id2);
-	console.log('points2:', points2);
-
-	// copy student
 	const studentsCopy = JSON.parse(JSON.stringify(student.value))
 
-	// find student
 	const studentCopy = studentsCopy.find(student => student.id === id)
 	const studentCopy2 = studentsCopy.find(student => student.id === id2)
 
-	// update student points
 	if (studentCopy === undefined || studentCopy2 === undefined)
 		return
 	studentCopy.points = (parseInt(studentCopy.points) + points).toString()
 	studentCopy2.points = (parseInt(studentCopy2.points) + points2).toString()
 
-	// sort students
 	studentsCopy.sort((a, b) => parseInt(b.points) - parseInt(a.points))
 
-	// return student order
 	const order = studentsCopy.findIndex(student => student.id === id) + 1
 
-	console.log('%cindex.vue -> 128', 'color: #0AD7A6; font-size: 1.5rem; background-color: #E0DECF; padding: 5px 15px; border-radius: 5px; -webkit-text-stroke: 0.5px black;');
-	console.log('order:', studentsCopy);
-
-	if (order === 1)
-		return '1er'
-	else
-		return order + 'ème'
+	if (order === 1) return '1er'
+	else return order + 'ème'
 }
 
 function calculatePoints() {
-	if (selectedStudent1.value === null || selectedStudent2.value === null) {
+	if (selectedStudent1.value === null || selectedStudent2.value === null)
 		return
-	}
 
 	const student1 = student.value.find(student => student.id === selectedStudent1.value)
 	const student2 = student.value.find(student => student.id === selectedStudent2.value)
 
-	if (student1 === undefined || student2 === undefined) {
+	if (student1 === undefined || student2 === undefined)
 		return
-	}
 
 	const points1 = parseInt(student1.points)
 	const order1 = parseInt(student1.order)
@@ -192,6 +186,15 @@ function calculatePoints() {
 
 	student2.points = (points2 + 1).toString()
 
+	let student3 = student.value.find(student => student.id === selectedStudent3.value)
+	if (student3 === undefined)
+		return
+	student3.points = (parseInt(student3.points) + 1).toString()
+
+	student1.match = (parseInt(student1.match) + 1).toString()
+	student2.match = (parseInt(student2.match) + 1).toString()
+	student3.arbitre = (parseInt(student3.arbitre) + 1).toString()
+
 	student.value = student.value.sort((a, b) => parseInt(b.points) - parseInt(a.points)).map((student, index) => {
 		student.order = (index + 1).toString()
 		return student
@@ -201,6 +204,7 @@ function calculatePoints() {
 
 	selectedStudent1.value = null
 	selectedStudent2.value = null
+	selectedStudent3.value = null
 
 	dialogResumeMatch.value = false
 }
@@ -208,6 +212,8 @@ function calculatePoints() {
 function resetPoints() {
 	student.value = student.value.map(student => {
 		student.points = '0'
+		student.match = '0'
+		student.arbitre = '0'
 		return student
 	})
 
@@ -226,13 +232,18 @@ function getOrder(id: string) {
 }
 
 function openValidPopup() {
-	if (selectedStudent1.value === null || selectedStudent2.value === null) {
-		errorMessage.value = 'Veuillez sélectionner deux élèves'
+	if (selectedStudent1.value === null || selectedStudent2.value === null || selectedStudent3.value === null) {
+		errorMessage.value = 'Veuillez sélectionner deux élèves et un arbitre'
 		return
 	}
 
 	if (selectedStudent1.value === selectedStudent2.value) {
 		errorMessage.value = 'Les élèves sélectionnés sont identiques'
+		return
+	}
+
+	if ((selectedStudent1.value === selectedStudent3.value) || (selectedStudent2.value === selectedStudent3.value)) {
+		errorMessage.value = 'L\'arbitre ne peut pas être un des élèves'
 		return
 	}
 
@@ -242,7 +253,6 @@ function openValidPopup() {
 			return
 		}
 	}
-
 
 	dialogResumeMatch.value = true
 }
@@ -255,6 +265,12 @@ watch(() => selectedStudent2.value, () => {
 	errorMessage.value = ''
 })
 
+function getOrderNumber(order: string) {
+	if (order === '1') return '🥇'
+	else if (order === '2') return '🥈'
+	else if (order === '3') return '🥉'
+	else return order
+}
 </script>
 
 <template>
@@ -282,6 +298,8 @@ watch(() => selectedStudent2.value, () => {
 					{ title: 'Ordre', value: 'order', sortable: false, align: 'center'},
 					{ title: 'Éleves', value: 'name', sortable: false, align: 'center'},
 					{ title: 'Points', value: 'points', sortable: false, align: 'center' },
+					{ title: 'Matchs', value: 'match', sortable: false, align: 'center' },
+					{ title: 'Arbitrages', value: 'arbitre', sortable: false, align: 'center' },
 					{ title: 'Actions', value: 'action', sortable: false, align: 'center' }
 				]"
 				:items="student.sort((a, b) => parseInt(b.points) - parseInt(a.points))"
@@ -292,12 +310,61 @@ watch(() => selectedStudent2.value, () => {
 				:no-data-text="'Aucun élève n\'a encore été ajouté'"
 				density="compact"
 			>
-				<template #item.action="{ item }">
-					<v-icon
-						@click="student.splice(student.indexOf(item), 1)"
+
+				<template #item.order="{ item }">
+					<div
+						style="
+							font-size: 1.3rem;
+						"
 					>
-						mdi-delete
-					</v-icon>
+						{{ getOrderNumber(item.order) }}
+					</div>
+				</template>
+
+				<template #item.action="{ item }">
+					<v-dialog
+						v-model="item.trash"
+						max-width="400"
+					>
+						<template #activator="{ props: activatorProps }">
+							<v-icon
+								@click="item.trash = true"
+								v-bind="activatorProps"
+							>
+								mdi-delete
+							</v-icon>
+						</template>
+
+						<v-card>
+							<v-card-title>
+								Supprimer l'élève
+							</v-card-title>
+							<v-card-text>
+								<p>
+									Voulez-vous vraiment supprimer l'élève <b>{{ item.name }}</b> ?
+								</p>
+							</v-card-text>
+							<v-card-actions
+								style="
+									display: flex;
+									justify-content: end;
+								"
+							>
+								<v-btn
+									@click="item.trash = false"
+								>
+									Annuler
+								</v-btn>
+								<v-btn
+									@click="deleteStudent(item.id)"
+									color="error"
+									variant="filled"
+								>
+									Supprimer
+								</v-btn>
+							</v-card-actions>
+						</v-card>
+					</v-dialog>
 				</template>
 
 				<template #bottom/>
@@ -368,6 +435,27 @@ watch(() => selectedStudent2.value, () => {
 									density="compact"
 									variant="outlined"
 									style="margin-left: 15px; width: 38%"
+
+									:hide-details="errorMessage !== '' ? false : true"
+									:error-messages="errorMessage"
+								/>
+							</div>
+							<div
+								style="
+									display: flex;
+									margin-top: 20px;
+								"
+							>
+								<v-select
+									:items="student"
+									name="student3"
+									label="Arbitre"
+									v-model="selectedStudent3"
+									:item-title="'name'"
+									:item-value="'id'"
+
+									density="compact"
+ 									variant="outlined"
 
 									:hide-details="errorMessage !== '' ? false : true"
 									:error-messages="errorMessage"
@@ -559,7 +647,7 @@ watch(() => selectedStudent2.value, () => {
 					<v-card
 						style="
 							width: 100%;
-							margin-bottom: 50px;
+							margin-bottom: 20px;
 							background-color: #efefef;
 						"
 					>
@@ -647,6 +735,7 @@ watch(() => selectedStudent2.value, () => {
 							</div>
 						</v-card-text>
 					</v-card>
+					<Score />
 			</div>
 		</v-col>
 	</div>

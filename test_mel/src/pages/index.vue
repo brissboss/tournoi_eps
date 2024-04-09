@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 interface Student {
 	id: string,
@@ -17,6 +17,8 @@ const selectedStudent2 = ref<string | null>(null)
 const dialogResetPoints = ref(false)
 const dialogReset = ref(false)
 const dialogResumeMatch = ref(false)
+
+const errorMessage = ref('')
 
 if (localStorage.getItem('student') !== null) {
 	student.value = JSON.parse(localStorage.getItem('student') as string)
@@ -54,10 +56,10 @@ function getPoint() {
 	const order1 = parseInt(student1.order)
 	const order2 = parseInt(student2.order)
 
-	if (points1 === 0)
+	if (points1 === 0 || parseInt(student2.points) === 0)
 		return 3;
 	else {
-		switch (order2 - order1) {
+		switch (order1 - order2) {
 			case 5:
 				return 6;
 				break
@@ -96,23 +98,35 @@ function getPoint() {
 	return 0;
 }
 
-function calculateOrder(id: string, points: string) {
+function calculateOrder(id: string, points: string, id2: string, points2: string) {
+
+	console.log('%cindex.vue -> 103', 'color: #0AD7A6; font-size: 1.5rem; background-color: #E0DECF; padding: 5px 15px; border-radius: 5px; -webkit-text-stroke: 0.5px black;');
+	console.log('id:', id);
+	console.log('points:', points);
+	console.log('id2:', id2);
+	console.log('points2:', points2);
+
 	// copy student
 	const studentsCopy = JSON.parse(JSON.stringify(student.value))
 
 	// find student
 	const studentCopy = studentsCopy.find(student => student.id === id)
+	const studentCopy2 = studentsCopy.find(student => student.id === id2)
 
 	// update student points
-	if (studentCopy === undefined)
+	if (studentCopy === undefined || studentCopy2 === undefined)
 		return
-	studentCopy.points = points
+	studentCopy.points = (parseInt(studentCopy.points) + points).toString()
+	studentCopy2.points = (parseInt(studentCopy2.points) + points2).toString()
 
 	// sort students
 	studentsCopy.sort((a, b) => parseInt(b.points) - parseInt(a.points))
 
 	// return student order
 	const order = studentsCopy.findIndex(student => student.id === id) + 1
+
+	console.log('%cindex.vue -> 128', 'color: #0AD7A6; font-size: 1.5rem; background-color: #E0DECF; padding: 5px 15px; border-radius: 5px; -webkit-text-stroke: 0.5px black;');
+	console.log('order:', studentsCopy);
 
 	if (order === 1)
 		return '1er'
@@ -137,10 +151,10 @@ function calculatePoints() {
 	const points2 = parseInt(student2.points)
 	const order2 = parseInt(student2.order)
 
-	if (points1 === 0)
-		student1.points = "3"
+	if (points1 === 0 || points2 === 0)
+		student1.points = (points1 + 3).toString()
 	else {
-		switch (order2 - order1) {
+		switch (order1 - order2) {
 			case 5:
 				student1.points = (points1 + 6).toString()
 				break
@@ -188,7 +202,7 @@ function calculatePoints() {
 	selectedStudent1.value = null
 	selectedStudent2.value = null
 
-	dialogResumeMatch.value = false	
+	dialogResumeMatch.value = false
 }
 
 function resetPoints() {
@@ -206,6 +220,40 @@ function reset() {
 	localStorage.removeItem('student')
 	dialogReset.value = false
 }
+
+function getOrder(id: string) {
+	return Number(student.value.find(student => student.id === id)?.order)
+}
+
+function openValidPopup() {
+	if (selectedStudent1.value === null || selectedStudent2.value === null) {
+		errorMessage.value = 'Veuillez sélectionner deux élèves'
+		return
+	}
+
+	if (selectedStudent1.value === selectedStudent2.value) {
+		errorMessage.value = 'Les élèves sélectionnés sont identiques'
+		return
+	}
+
+	if (Number(student.value.find(student => student.id === selectedStudent1.value)?.points) !== 0 && Number(student.value.find(student => student.id === selectedStudent2.value)?.points) !== 0) {
+		if (getOrder(selectedStudent1.value) - getOrder(selectedStudent2.value) > 5 || getOrder(selectedStudent1.value) - getOrder(selectedStudent2.value) < -5) {
+			errorMessage.value = 'Les élèves sélectionnés sont trop éloignés dans le classement (5 places maximum)'
+			return
+		}
+	}
+
+
+	dialogResumeMatch.value = true
+}
+
+watch(() => selectedStudent1.value, () => {
+	errorMessage.value = ''
+})
+
+watch(() => selectedStudent2.value, () => {
+	errorMessage.value = ''
+})
 
 </script>
 
@@ -301,10 +349,12 @@ function reset() {
 									:item-title="'name'"
 									:item-value="'id'"
 
-									hide-details
 									density="compact"
 									variant="outlined"
 									style="margin-right: 15px; width: 38%;"
+
+									:hide-details="errorMessage !== '' ? false : true"
+									:error-messages="errorMessage"
 								/>
 								<p style="width: 23%; text-align: center;">A gagner contre</p>
 								<v-select
@@ -315,10 +365,12 @@ function reset() {
 									:item-title="'name'"
 									:item-value="'id'"
 
-									hide-details
 									density="compact"
 									variant="outlined"
 									style="margin-left: 15px; width: 38%"
+
+									:hide-details="errorMessage !== '' ? false : true"
+									:error-messages="errorMessage"
 								/>
 							</div>
 							<div
@@ -386,13 +438,12 @@ function reset() {
 									v-model="dialogResumeMatch"
 									max-width="400"
 								>
-									<template #activator="{ props: activatorProps }">
+									<template #activator>
 										<v-btn
-											@click="dialogResumeMatch = true"
+											@click="openValidPopup"
 											color="primary"
 											variant="outlined"
 											style="margin-top: 20px; width: 30%; margin-left: 10px"
-											v-bind="activatorProps"
 										>
 											Valider
 										</v-btn>
@@ -438,7 +489,7 @@ function reset() {
 															color: #5f5f5f;
 														"
 													>
-														- <b>{{ calculateOrder(selectedStudent1, getPoint()) }}</b> au classement
+														- <b>{{ calculateOrder(selectedStudent1, getPoint(), selectedStudent2, 1) }}</b> au classement
 													</p>
 												</v-col>
 												<v-col
@@ -464,7 +515,7 @@ function reset() {
 															color: #5f5f5f;
 														"
 													>
-														- <b>1</b> points gagnés
+														- <b>1</b> point gagné
 													</p>
 													<p
 														style="
@@ -473,7 +524,7 @@ function reset() {
 															color: #5f5f5f;
 														"
 													>
-														- <b>8ème</b> au classement
+														- <b>{{ calculateOrder(selectedStudent2, 1, selectedStudent1, getPoint()) }}</b> au classement
 													</p>
 												</v-col>
 											</v-row>

@@ -280,7 +280,7 @@ function getOrderNumber(order: string) {
 			flex-direction: row;
 		"
 	>
-		<v-col cols="5"
+		<v-col cols="6"
 			style="
 				border-right: 0.5px solid gray;
 				padding: 0;
@@ -296,7 +296,7 @@ function getOrderNumber(order: string) {
 				"
 				:headers="[
 					{ title: 'Ordre', value: 'order', sortable: false, align: 'center'},
-					{ title: 'Éleves', value: 'name', sortable: false, align: 'center'},
+					{ title: 'Élèves', value: 'name', sortable: false, align: 'center'},
 					{ title: 'Points', value: 'points', sortable: false, align: 'center' },
 					{ title: 'Matchs', value: 'match', sortable: false, align: 'center' },
 					{ title: 'Arbitrages', value: 'arbitre', sortable: false, align: 'center' },
@@ -370,7 +370,7 @@ function getOrderNumber(order: string) {
 				<template #bottom/>
 			</VDataTable>
 		</v-col>
-		<v-col cols="7"
+		<v-col cols="6"
 			style="
 				border-right: 0.5px solid gray;
 				padding-top: 0;
